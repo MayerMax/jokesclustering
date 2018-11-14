@@ -9,7 +9,7 @@ class AbstractVectorizer(ABC):
         pass
 
     @abstractmethod
-    def fit(self, texts: List[str]) -> numpy.ndarray:
+    def fit(self, texts: numpy.ndarray) -> numpy.ndarray:
         """
         Абстрактная функция, которая получает на вход набор текстов и возвращает их векторные представления
         :param texts: последовательность текстов
