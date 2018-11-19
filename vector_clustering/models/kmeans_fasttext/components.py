@@ -9,7 +9,7 @@ from vector_clustering.abstract.model import Model
 from vector_clustering.data.manager import load, ARANEUM_FASTTEXT
 
 
-class KmeansVectorizer(AbstractVectorizer):
+class FasttextVectorizer(AbstractVectorizer):
     def __init__(self):
         super().__init__()
         self.__fasttext = load(ARANEUM_FASTTEXT)
@@ -46,7 +46,7 @@ class KmeansSimpleClusterExtractor(AbstractClusterExtractor):
 
 if __name__ == '__main__':
     texts = numpy.array(['my name is max', 'your name is max'])
-    vectorizer = KmeansVectorizer()
+    vectorizer = FasttextVectorizer()
     cluster_extractor = KmeansSimpleClusterExtractor()
 
     m = Model(vectorizer, cluster_extractor)
