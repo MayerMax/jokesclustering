@@ -13,7 +13,7 @@ def load(constant: int):
 
 
 def get_jokes_as_dataframe():
-    return pandas.read_json(os.path.join(os.path.dirname(__file__), 'jokes.json'), encoding='utf-8').rename(index=str,
+    return pandas.read_json(os.path.join(os.path.dirname(__file__), 'jokes_new.json'), encoding='utf-8').rename(index=str,
                                                                                           columns={0: "joke_text"})
 
 
