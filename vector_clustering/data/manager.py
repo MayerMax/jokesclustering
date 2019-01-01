@@ -13,8 +13,9 @@ def load(constant: int):
 
 
 def get_jokes_as_dataframe():
-    return pandas.read_json(os.path.join(os.path.dirname(__file__), 'jokes_new.json'), encoding='utf-8').rename(index=str,
-                                                                                          columns={0: "joke_text"})
+    return pandas.read_json(os.path.join(os.path.dirname(__file__), 'jokes_new.json'), encoding='utf-8').rename(
+        index=str,
+        columns={0: "joke_text"})
 
 
 def load_pandas_csv(file_name):
@@ -24,6 +25,11 @@ def load_pandas_csv(file_name):
     :return: pandas
     """
     return pandas.read_csv(os.path.join(os.path.dirname(__file__), file_name))
+
+
+def read_lines_from_file(file_name):
+    with open(os.path.join(os.path.dirname(__file__), file_name)) as f:
+        return f.readlines()
 
 
 def __load_araneum_fasttext():
