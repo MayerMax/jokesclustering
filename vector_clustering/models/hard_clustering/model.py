@@ -8,7 +8,8 @@ def shuffle_two_arrays(a, b):
     combined = list(zip(a, b))
     random.shuffle(combined)
     a, b = zip(*combined)
-    return a, b
+
+    return list(a), list(b)
 
 
 class HardClustering:
@@ -33,8 +34,8 @@ class HardClustering:
         self.__current_threshold = self.__initial_threshold
         self.__step = step
 
-        self.__vector_clusters = [[]] * number_target_clusters
-        self.__textual_clusters = [[]] * number_target_clusters
+        self.__vector_clusters = [[] for _ in range(number_target_clusters)]
+        self.__textual_clusters = [[] for _ in range(number_target_clusters)]
 
         self.__shuffle = shuffle
         self.__strategy = strategy
@@ -59,7 +60,6 @@ class HardClustering:
         temp_vectors = []
         temp_texts = []
         sim_function = self.__similarity_methods.get(self.__sim_func)
-
         while self.__vectors:
             current_vector = self.__vectors.pop()  # удаление последнего элемента
             current_text = self.__texts.pop()
@@ -69,7 +69,7 @@ class HardClustering:
 
             if not insert:
                 found_free_index = self.__get_first_free_cluster_index()
-                if not found_free_index:
+                if found_free_index == -1:
                     temp_vectors.append(current_vector)
                     temp_texts.append(current_text)
                 else:
@@ -80,8 +80,8 @@ class HardClustering:
 
         self.__current_threshold -= self.__step
 
-        if need_shuffle:
-            self.__vectors, self.__texts = shuffle_two_arrays(self.__vectors, self.__texts)
+        if need_shuffle and temp_vectors and temp_texts:
+            self.__vectors, self.__texts = shuffle_two_arrays(temp_vectors, temp_texts)
         else:
             self.__vectors = temp_vectors
             self.__texts = temp_texts
@@ -98,9 +98,9 @@ class HardClustering:
         print('Median: {}, Mean: {}, Std: {}'.format(np.median(sizes), np.mean(sizes), np.std(sizes)))
         print('Всего кластеризованао {} из {}, текущий порог похожести: {}'.format(sum(sizes), self.__initial_size,
                                                                                    self.__current_threshold))
-        print('Сэмплирование не более чем {} шуток из каждого кластера:')
+        print('Сэмплирование не более чем {} шуток из каждого кластера:'.format(show_top_n))
         for index, cluster in enumerate(self.__textual_clusters):
-            print('Cluster {}:\n{}\n'.format(index, '\n'.join(cluster[0:min(show_top_n, len(cluster) - 1)])))
+            print('Cluster {}:\n{}\n'.format(index, '\n'.join(cluster[0:min(show_top_n, len(cluster))])))
 
     def reset_clusters(self, search_for_target_clusters=50, new_current_similarity=None, new_step=None):
         """
@@ -110,8 +110,8 @@ class HardClustering:
         :param new_step: обновление уменшения похожести
         :return: None
         """
-        self.__vector_clusters = [[]] * search_for_target_clusters
-        self.__textual_clusters = [[]] * search_for_target_clusters
+        self.__vector_clusters = [[] for _ in range(search_for_target_clusters)]
+        self.__textual_clusters = [[] for _ in range(search_for_target_clusters)]
 
         if new_current_similarity:
             self.__current_threshold = new_current_similarity
@@ -126,18 +126,25 @@ class HardClustering:
         """
         return self.__vector_clusters, self.__textual_clusters
 
+    def get_nonclustered(self):
+        """
+        Возвращает некластеризованные векторы и сами шутки
+        :return:
+        """
+        return self.__vectors, self.__texts
+
     def __get_first_free_cluster_index(self):
         for i in range(len(self.__vector_clusters)):
             if not self.__vector_clusters[i]:
                 return i
-        return None
+        return -1
 
     def __insert_in_cluster(self, cluster_index, vector, text):
         self.__vector_clusters[cluster_index].append(vector)
         self.__textual_clusters[cluster_index].append(text)
 
     def __cosine_average_similarity(self, vector):
-        similarities = [np.mean(cosine_similarity(vector, cluster)[0]) if cluster else 0.0
+        similarities = [np.mean(cosine_similarity([vector], cluster)[0]) if cluster else 0.0
                         for cluster in self.__vector_clusters]
         max_sim_index = np.argmax(similarities)
         max_sim = similarities[max_sim_index]
