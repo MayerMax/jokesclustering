@@ -34,7 +34,7 @@ class HardClustering:
         self.__current_threshold = self.__initial_threshold
         self.__step = step
 
-        self.__vector_clusters = [[] for _ in range(number_target_clusters)]
+        self.__vector_clusters = [None for _ in range(number_target_clusters)]
         self.__textual_clusters = [[] for _ in range(number_target_clusters)]
 
         self.__shuffle = shuffle
@@ -73,10 +73,10 @@ class HardClustering:
                     temp_vectors.append(current_vector)
                     temp_texts.append(current_text)
                 else:
-                    self.__insert_in_cluster(found_free_index, current_vector, current_text)
+                    self.__update(found_free_index, current_vector, current_text)
 
             else:
-                self.__insert_in_cluster(cluster_index, current_vector, current_text)
+                self.__update(cluster_index, current_vector, current_text)
 
         self.__current_threshold -= self.__step
 
@@ -86,6 +86,11 @@ class HardClustering:
             self.__vectors = temp_vectors
             self.__texts = temp_texts
 
+    def custom_cycles(self, end_sim, need_shuffle_after_step=True):
+        while self.__current_threshold >= end_sim:
+            self.one_cycle(need_shuffle=need_shuffle_after_step)
+            print('Шаг сделан, текущий порог {}'.format(self.__current_threshold))
+
     def display_current_cycle(self, show_top_n=5):
         """
         Отображает сводную статистику после запуска one_cycle, а также для каждого кластера выводит не более
@@ -94,7 +99,7 @@ class HardClustering:
         """
         if self.__initial_threshold == self.__current_threshold:
             raise ValueError('Кластера пустые, требуется вызов one_cycle')
-        sizes = [len(x) for x in self.__vector_clusters]
+        sizes = [x[1] if x else 0.0 for x in self.__vector_clusters]
         print('Median: {}, Mean: {}, Std: {}'.format(np.median(sizes), np.mean(sizes), np.std(sizes)))
         print('Всего кластеризованао {} из {}, текущий порог похожести: {}'.format(sum(sizes), self.__initial_size,
                                                                                    self.__current_threshold))
@@ -110,7 +115,7 @@ class HardClustering:
         :param new_step: обновление уменшения похожести
         :return: None
         """
-        self.__vector_clusters = [[] for _ in range(search_for_target_clusters)]
+        self.__vector_clusters = [None for _ in range(search_for_target_clusters)]
         self.__textual_clusters = [[] for _ in range(search_for_target_clusters)]
 
         if new_current_similarity:
@@ -139,13 +144,9 @@ class HardClustering:
                 return i
         return -1
 
-    def __insert_in_cluster(self, cluster_index, vector, text):
-        self.__vector_clusters[cluster_index].append(vector)
-        self.__textual_clusters[cluster_index].append(text)
-
     def __cosine_average_similarity(self, vector):
-        similarities = [np.mean(cosine_similarity([vector], cluster)[0]) if cluster else 0.0
-                        for cluster in self.__vector_clusters]
+        similarities = [cosine_similarity([vector], [cluster[0]])[0] if cluster else 0.0 for cluster in
+                        self.__vector_clusters]  # среднее предпосчитано
         max_sim_index = np.argmax(similarities)
         max_sim = similarities[max_sim_index]
         if max_sim < self.__current_threshold:
@@ -153,6 +154,18 @@ class HardClustering:
         return True, max_sim_index
 
         # TODO вектора могут относиться к нескольким кластерам: np.argwhere(listy == np.amax(listy))
+
+    def __update_effective_cluster_mean(self, cluster_index, value):
+        cluster = self.__vector_clusters[cluster_index]
+        if not cluster:
+            self.__vector_clusters[cluster_index] = (value, 1)
+        else:
+            current_mean, k = cluster
+            self.__vector_clusters[cluster_index] = ((current_mean * k + value) / (k + 1), k + 1)
+
+    def __update(self, cluster_index, new_vector, new_text):
+        self.__update_effective_cluster_mean(cluster_index, new_vector)
+        self.__textual_clusters[cluster_index].append(new_text)
 
 
 if __name__ == '__main__':
